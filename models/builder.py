@@ -25,6 +25,7 @@ Please check 'timm/models/swin_transformer.py' line 541 to see how to change mod
 model also fail at create_feature_extractor or get_graph_node_names step.
 """
 
+
 def load_model_weights(model, model_path):
     ### reference https://github.com/TACJu/TransFG
     ### thanks a lot.
@@ -126,7 +127,7 @@ def build_efficientnet(pretrained: bool = True,
             'layer4':32
         }
     
-    backbone = models.efficientnet_b7(pretrained=pretrained)
+    backbone = models.efficientnet_b7(weights=pretrained)
     backbone.train()
 
     # print(backbone)
@@ -145,8 +146,6 @@ def build_efficientnet(pretrained: bool = True,
                                    num_selects = num_selects, 
                                    use_combiner = num_selects,
                                    comb_proj_size = comb_proj_size)
-
-
 
 
 def build_vit16(pretrained: str = "./vit_base_patch16_224_miil_21k.pth",
@@ -271,6 +270,106 @@ def build_swintransformer(pretrained: bool = True,
                                    comb_proj_size = comb_proj_size)
 
 
+def build_mobilenetv3_s(pretrained: bool = True,
+                        return_nodes: Union[dict, None] = None,
+                        num_selects: Union[dict, None] = None, 
+                        img_size: int = 448,
+                        use_fpn: bool = True,
+                        fpn_size: int = 512,
+                        proj_type: str = "Conv",
+                        upsample_type: str = "Bilinear",
+                        use_selection: bool = True,
+                        num_classes: int = 200,
+                        use_combiner: bool = True,
+                        comb_proj_size: Union[int, None] = None):
+
+    import torchvision.models as models
+
+    if return_nodes is None:
+        return_nodes = {
+            'features.8': 'layer1',
+            'features.9': 'layer2',
+            'features.10': 'layer3',
+            'features.11': 'layer4',
+        }
+    if num_selects is None:
+        num_selects = {
+            'layer1': 32,
+            'layer2': 32,
+            'layer3': 32,
+            'layer4': 32
+        }
+    
+    backbone = models.mobilenet_v3_small(weights=pretrained)
+    backbone.train()
+
+    # print(backbone)
+    # print(get_graph_node_names(backbone))
+    ## features.1~features.7
+
+    return pim_module.PluginMoodel(backbone = backbone,
+                                   return_nodes = return_nodes,
+                                   img_size = img_size,
+                                   use_fpn = use_fpn,
+                                   fpn_size = fpn_size,
+                                   proj_type = proj_type,
+                                   upsample_type = upsample_type,
+                                   use_selection = use_selection,
+                                   num_classes = num_classes,
+                                   num_selects = num_selects, 
+                                   use_combiner = num_selects,
+                                   comb_proj_size = comb_proj_size)
+
+
+def build_mobilenetv3_l(pretrained: bool = True,
+                        return_nodes: Union[dict, None] = None,
+                        num_selects: Union[dict, None] = None, 
+                        img_size: int = 448,
+                        use_fpn: bool = True,
+                        fpn_size: int = 512,
+                        proj_type: str = "Conv",
+                        upsample_type: str = "Bilinear",
+                        use_selection: bool = True,
+                        num_classes: int = 200,
+                        use_combiner: bool = True,
+                        comb_proj_size: Union[int, None] = None):
+
+    import torchvision.models as models
+
+    if return_nodes is None:
+        return_nodes = {
+            'features.12': 'layer1',
+            'features.13': 'layer2',
+            'features.14': 'layer3',
+            'features.15': 'layer4',
+        }
+    if num_selects is None:
+        num_selects = {
+            'layer1': 32,
+            'layer2': 32,
+            'layer3': 32,
+            'layer4': 32
+        }
+    
+    backbone = models.mobilenet_v3_large(weights=pretrained)
+    backbone.train()
+
+    # print(backbone)
+    # print(get_graph_node_names(backbone))
+    ## features.1~features.7
+
+    return pim_module.PluginMoodel(backbone = backbone,
+                                   return_nodes = return_nodes,
+                                   img_size = img_size,
+                                   use_fpn = use_fpn,
+                                   fpn_size = fpn_size,
+                                   proj_type = proj_type,
+                                   upsample_type = upsample_type,
+                                   use_selection = use_selection,
+                                   num_classes = num_classes,
+                                   num_selects = num_selects, 
+                                   use_combiner = num_selects,
+                                   comb_proj_size = comb_proj_size)
 
 
 if __name__ == "__main__":
@@ -288,22 +387,32 @@ if __name__ == "__main__":
 
     ### ==== efficientNet ====
     model = build_efficientnet(pretrained=False)
+
+    ### ==== mobileNetV3 ====
+    # model = build_mobilenetv3_s(pretrained=False)
+    model = build_mobilenetv3_l(pretrained=False)
+
+    device = "cpu"
+
     t = torch.randn(1, 3, 448, 448)
 
-    model.cuda()
+    model.to(device)
     
-    t = t.cuda()
+    t = t.to(device)
     outs = model(t)
+    print("    " , end="")
     for out in outs:
-        print(type(out))
+        print(type(out), out)
         print("    " , end="")
         if type(out) == dict:
             print([name for name in out])
 
 
 MODEL_GETTER = {
-    "resnet50":build_resnet50,
-    "swin-t":build_swintransformer,
-    "vit":build_vit16,
-    "efficient":build_efficientnet
+    "resnet50": build_resnet50,
+    "swin-t": build_swintransformer,
+    "vit": build_vit16,
+    "efficient": build_efficientnet,
+    "mobilenetv3_small": build_mobilenetv3_s,
+    "mobilenetv3_large": build_mobilenetv3_l,
 }
